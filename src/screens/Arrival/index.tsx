@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { Alert } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { X } from 'phosphor-react-native';
@@ -5,12 +6,13 @@ import { BSON } from 'realm';
 
 import { useObject, useRealm } from '../../libs/realm';
 import { Historic } from '../../libs/realm/schemas/Historic';
+import { getLastSyncTimestamp } from '../../libs/asyncstorage/syncStorage';
 
 import { Button } from '../../components/Button';
 import { ButtonIcon } from '../../components/ButtonIcon';
 import { Header } from '../../components/Header';
 
-import { Container, Content, Description, Footer, Label, LicensePlate } from './styles';
+import { Container, Content, Description, Footer, Label, LicensePlate, AsyncMessage } from './styles';
 
 export type RouteParamsProps = {
   id: string;
@@ -19,6 +21,8 @@ export type RouteParamsProps = {
 export function Arrival() {
   const { id } = useRoute().params as RouteParamsProps;
   const { goBack } = useNavigation();
+
+  const [dataNotSynced, setDataNotSynced] = useState(false);
 
   const historic = useObject(Historic, new BSON.UUID(id) as unknown as string);
   const realm = useRealm();
@@ -37,14 +41,10 @@ export function Arrival() {
   }
 
   function removeVehicleUsage() {
-    // try {
-      realm.write(() => {
-        realm.delete(historic);
-      });
-      goBack();
-    // } catch (error) {
-    //   console.log(error);
-    // }
+    realm.write(() => {
+      realm.delete(historic);
+    });
+    goBack();
   }
 
   function handleArrivalRegister() {
@@ -66,6 +66,11 @@ export function Arrival() {
     }
   }
 
+  useEffect(() => {
+    getLastSyncTimestamp()
+      .then(lastSync => setDataNotSynced(historic!.updated_at.getTime() > lastSync));
+  }, [])
+
   return (
     <Container>
       <Header title={title} />
@@ -77,10 +82,15 @@ export function Arrival() {
         <Description>
           {historic?.description}
         </Description>
-
-        
         
       </Content>
+
+      {dataNotSynced && (
+        <AsyncMessage>
+          Sincronização da {historic?.status === 'departure' ? 'partida' : 'chegada'} pendente.
+        </AsyncMessage>
+      )}
+
       {historic?.status === 'departure' && (
         <Footer>
           <ButtonIcon
