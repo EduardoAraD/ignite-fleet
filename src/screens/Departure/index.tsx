@@ -7,7 +7,8 @@ import {
   useForegroundPermissions,
   watchPositionAsync,
   LocationAccuracy,
-  LocationSubscription
+  LocationSubscription,
+  LocationObjectCoords
 } from 'expo-location';
 import { Car } from 'phosphor-react-native';
 
@@ -19,6 +20,7 @@ import { Header } from '../../components/Header';
 import { LicensePlateinput } from '../../components/LicensePlateinput';
 import { Loading } from '../../components/Loading';
 import { LocationInfo } from '../../components/LocationInfo';
+import { Map } from '../../components/Map';
 import { TextAreaInput } from '../../components/TextAreaInput';
 
 import { licensePlateValidade } from '../../utils/licensePlateValidade';
@@ -35,7 +37,8 @@ export function Departure() {
   const [licensePlate, setLicensePlate] = useState('');
   const [isRegistering, setIsRegistering] = useState(false);
   const [isLoadingLocation, setIsLoadingLocation] = useState(true);
-  const [currentAddress, setCurrentAddress] = useState<string | null>(null)
+  const [currentAddress, setCurrentAddress] = useState<string | null>(null);
+  const [currentCoords, setCurrentCoods] = useState<LocationObjectCoords | null>(null);
 
   const descriptionRef = useRef<TextInput>(null);
   const licensePlateRef = useRef<TextInput>(null);
@@ -89,6 +92,8 @@ export function Departure() {
       accuracy: LocationAccuracy.High,
       timeInterval: 1000,
     }, (location) => {
+      setCurrentCoods(location.coords);
+
       getAddressLocation(location.coords)
         .then((address) => {
           if(address) {
@@ -127,6 +132,9 @@ export function Departure() {
 
       <KeyboardAwareScrollView extraHeight={100}>
         <ScrollView>
+          {currentCoords && (
+            <Map coordinates={[currentCoords]} />
+          )}
           <Content>
             {currentAddress && (
               <LocationInfo
